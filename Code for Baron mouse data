@@ -123,11 +123,11 @@ for (b in 1:(ncol(wil)-1)){
 
 #Change colnames to identity values for p, pct.in and pct.rest and save these files#
 colnames(p) <- c("gene", iden)
-fwrite(p, paste("Outputs/Ximerakis_p.csv", sep=""))
+fwrite(p, paste("Outputs/baron_p.csv", sep=""))
 colnames(percent_in) <- c("gene", iden)
-fwrite(percent_in, paste("Outputs/Ximerakis_percent_in.csv", sep=""))
+fwrite(percent_in, paste("Outputs/baron_percent_in.csv", sep=""))
 colnames(percent_rest) <- c("gene", iden)
-fwrite(percent_rest, paste("Outputs/Ximerakis_percent_rest.csv", sep=""))
+fwrite(percent_rest, paste("Outputs/baron_percent_rest.csv", sep=""))
 
 #Change colnames to identity values#
 colnames(fc) <- c("gene", iden)
@@ -137,7 +137,7 @@ for(x in 2:ncol(fc)){
   fc[is.infinite(fc[,x]),x] = m
 }
 #Save this file#
-fwrite(fc, paste("Outputs/Ximerakis_fc.csv", sep=""))
+fwrite(fc, paste("Outputs/baron_fc.csv", sep=""))
 
 # adjust p value horizontally using BH correcton and update this to the q dataframe#
 for (x in 1:nrow(p)){
@@ -146,7 +146,7 @@ for (x in 1:nrow(p)){
 
 #Change colnames to identity values and save the file#
 colnames(q) <- c("gene", iden)
-fwrite(q, paste("Outputs/Ximerakis_q.csv", sep=""))
+fwrite(q, paste("Outputs/baron_q.csv", sep=""))
 
 ########Enrichment analysis##########
 
@@ -252,39 +252,6 @@ for (s in c(1:length(sex))){
   Fish <- merge(Fish, rest, by = "Identity")
   names(Fish)[length(names(Fish))] <- "Mean FC Rest"
   
-  ### GENE SET ENRICHMENT ANALYSIS (GSEA) ########################################################################  
-  
-  #Create list of identities that fulfill the criteria for GSEA - more than 10% of imprinted genes present and a IG FC higher than Rest FC#
-  tissue_GSEA <- Fish$Identity[(Fish$`Mean FC IG` >= Fish$`Mean FC Rest` & Fish$IG >= 15)]
-  
-  ##If there are tissues in tissue_GSEA run a GSEA analysis for IGs in each of those tissues##
-  if(length(tissue_GSEA) > 0){
-    ifelse(!dir.exists(file.path(paste(getwd(), "/Outputs/", sex[s], sep = ""), "GSEA")), dir.create(file.path(paste(getwd(), "/Outputs/", sex[s], sep = ""), "GSEA")), FALSE)
-    for(f in 1:length(tissue_GSEA)){
-      #filter DEGs for the tissue selected#
-      daa <- DEGs %>% filter(DEGs$Identity == tissue_GSEA[f])
-      #create log transformed fc values for DEGs#
-      file <- log2(daa$fc)
-      #replace infinity values with max values and name the file with gene names#
-      file[is.infinite(file)] <- max(file[is.finite(file)])
-      file <- set_names(file, daa$gene)
-      #create imprinted gene list to use for GSEA#
-      ig <- as.character(IIGG$Gene)
-      #save the graph from the GSEA as a pdf#
-      pdf(paste("Outputs/", sex[s],"/GSEA/",gsub("[^A-Za-z0-9 ]","",tissue_GSEA[f]), "_GSEA.pdf", sep=""))
-      #Add GSEA p value to Fish#
-      Fish[Fish$Identity == tissue_GSEA[f],8] <- gsea(file, ig)
-      #Save PDF#
-      dev.off()
-    }
-    
-    names(Fish)[length(names(Fish))] <- "GSEA_p"
-    
-    #Adjust the GSEA p values using bonferroni as new column in Fish#
-    Fish$Adjust_GSEA <- p.adjust(Fish$GSEA_p, method = "bonferroni")
-    names(Fish)[length(names(Fish))] <- "GSEA_q"
-  }
-  
   ### IMPRINTED GENE TOP TISSUE EXPRESSION ######################################################################    
   
   
@@ -309,13 +276,13 @@ for (s in c(1:length(sex))){
   fwrite(Fish, paste("Outputs/", sex[s], "/ORA_GSEA2.csv", sep =""))
 }  
 
-#### STAGE 3 - VISUALISATION DOTPLOT for NENDC ########################################################################################################
+#### STAGE 3 - VISUALISATION DOTPLOT ########################################################################################################
 
 #Arrange Fish by over-representation significance, take the identity variable as an order value#
 Fish <- Fish %>% arrange(Fish$ORA_p)
 order <- Fish$Identity
 
-#Filter original IG list with those upregualted in neuroendocrine cells#
+#Filter original IG list with those upregualted#
 IG2 <- IIGG[IIGG$Gene %in% D2$gene,]
 #Arrange IGs by the chromosomal order#
 IG2 <- IG2 %>% arrange(IG2$Order)
